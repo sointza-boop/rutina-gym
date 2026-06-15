@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rutinas Gimnasio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --accent: #00e5a0;
+    --accent2: #00c4ff;
+    --bg: #0d0f14;
+    --surface: #161921;
+    --surface2: #1e2230;
+    --border: #2a2f42;
+    --text: #e8eaf0;
+    --muted: #7a82a0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  .accent { color: var(--accent); }
+  .accent2 { color: var(--accent2); }
+
+  /* Tab nav */
+  .day-tab { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; cursor: pointer; transition: all .2s; font-size: 13px; font-weight: 600; color: var(--muted); text-align: center; flex: 1; }
+  .day-tab.active { background: var(--accent); color: #0d1a14; border-color: var(--accent); }
+  .day-tab:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+  /* Search */
+  .search-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); padding: 10px 14px 10px 40px; width: 100%; font-size: 15px; outline: none; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  /* Exercise card */
+  .ex-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; transition: border-color .2s; }
+  .ex-card.done { opacity: .5; }
+  .ex-card:hover { border-color: #3a4060; }
+
+  /* Serie badge */
+  .serie-btn { border: 2px solid var(--border); border-radius: 10px; padding: 8px 12px; cursor: pointer; background: var(--surface2); color: var(--muted); font-size: 13px; font-weight: 700; transition: all .15s; min-width: 48px; text-align: center; }
+  .serie-btn.done { background: #0a2e1e; border-color: var(--accent); color: var(--accent); }
+  .serie-btn:hover:not(.done) { border-color: #4a5280; }
+
+  /* Timer */
+  .timer-circle { width: 130px; height: 130px; border-radius: 50%; border: 4px solid var(--border); display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto; position: relative; }
+  .timer-circle.running { border-color: var(--accent); }
+  .timer-circle.done-ring { border-color: #ff4d6d; }
+  .timer-display { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
+  .quick-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; cursor: pointer; color: var(--text); font-weight: 700; font-size: 14px; flex: 1; transition: all .15s; }
+  .quick-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn { border-radius: 12px; padding: 12px 20px; cursor: pointer; font-weight: 700; font-size: 15px; border: none; transition: all .15s; }
+  .ctrl-start { background: var(--accent); color: #0d1a14; }
+  .ctrl-start:hover { filter: brightness(1.1); }
+  .ctrl-stop { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .ctrl-stop:hover { border-color: #ff4d6d; color: #ff4d6d; }
+
+  /* Pill badge */
+  .badge { display: inline-block; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+  .badge-green { background: #0a2e1e; color: var(--accent); }
+  .badge-blue { background: #0a1e2e; color: var(--accent2); }
+  .badge-amber { background: #2e1e0a; color: #f0a500; }
+
+  /* Progress bar */
+  .progress-bar-bg { background: var(--surface2); border-radius: 999px; height: 6px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width .4s; }
+
+  /* Bottom nav */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); z-index: 50; }
+  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 0; cursor: pointer; color: var(--muted); flex: 1; font-size: 11px; font-weight: 600; transition: color .2s; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn i { font-size: 20px; }
+
+  /* Sections */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Pulse animation for running timer */
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+  .pulsing { animation: pulse 1s infinite; }
+
+  /* Alert flash */
+  @keyframes flash { 0%,100%{background:var(--surface)} 50%{background:#1a0a14} }
+  .flashing { animation: flash .4s 5; }
+
+  /* Notes toggle */
+  .notes-text { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 8px; display: none; }
+  .notes-text.open { display: block; }
+
+  /* Filter chips */
+  .chip { border: 1px solid var(--border); border-radius: 99px; padding: 5px 13px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all .15s; background: var(--surface2); }
+  .chip.on { background: #0a2e1e; border-color: var(--accent); color: var(--accent); }
+
+  .scrollable { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+
+<!-- TOP HEADER -->
+<div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;">
+      <i class="fa-solid fa-dumbbell" style="color:#0d1a14;font-size:14px;"></i>
+    </div>
+    <div>
+      <div style="font-size:15px;font-weight:800;letter-spacing:-.3px;">GYM TRACKER</div>
+      <div style="font-size:11px;color:var(--muted);">Protección hombro &amp; rodilla</div>
+    </div>
+  </div>
+  <button onclick="resetTraining()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--muted);cursor:pointer;font-size:12px;font-weight:700;">
+    <i class="fa-solid fa-rotate-left" style="margin-right:4px;"></i>Reiniciar
+  </button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div style="padding:16px 16px 90px;">
+
+  <!-- SECTION: RUTINAS -->
+  <div id="sec-rutinas" class="section active">
+    <!-- Day tabs -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;" id="day-tabs">
+      <button class="day-tab active" onclick="selectDay(0,this)">
+        <i class="fa-solid fa-arrow-up" style="display:block;margin:0 auto 2px;"></i>Día 1<br><span style="font-size:10px;font-weight:400;">Tren Superior</span>
+      </button>
+      <button class="day-tab" onclick="selectDay(1,this)">
+        <i class="fa-solid fa-arrow-down" style="display:block;margin:0 auto 2px;"></i>Día 2<br><span style="font-size:10px;font-weight:400;">Tren Inferior</span>
+      </button>
+      <button class="day-tab" onclick="selectDay(2,this)">
+        <i class="fa-solid fa-crosshairs" style="display:block;margin:0 auto 2px;"></i>Día 3<br><span style="font-size:10px;font-weight:400;">Core</span>
+      </button>
+    </div>
+
+    <!-- Day summary -->
+    <div id="day-summary" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+    </div>
+
+    <!-- Progress bar -->
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px;">
+        <span>Progreso del día</span>
+        <span id="progress-text">0 / 0 series</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- Exercises list -->
+    <div id="exercises-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+  </div>
+
+  <!-- SECTION: BUSCAR -->
+  <div id="sec-buscar" class="section">
+    <div style="position:relative;margin-bottom:12px;">
+      <i class="fa-solid fa-search" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;"></i>
+      <input class="search-input" id="search-input" type="text" placeholder="Buscar ejercicio..." oninput="renderSearch()">
+    </div>
+    <!-- Filter chips -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="filter-chips"></div>
+    <div id="search-results" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+
+  <!-- SECTION: TEMPORIZADOR -->
+  <div id="sec-timer" class="section">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px 16px;margin-bottom:16px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;font-weight:700;letter-spacing:1px;">DESCANSO</div>
+        <div class="timer-circle" id="timer-circle">
+          <div class="timer-display" id="timer-display" style="color:var(--accent);">1:30</div>
+          <div style="font-size:11px;color:var(--muted);">seg</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button class="quick-btn" onclick="setTimer(60)">60s</button>
+        <button class="quick-btn" onclick="setTimer(90)">90s</button>
+        <button class="quick-btn" onclick="setTimer(120)">2:00</button>
+        <button class="quick-btn" onclick="setTimer(180)">3:00</button>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button class="ctrl-btn ctrl-start" id="timer-start-btn" onclick="toggleTimer()" style="flex:2;">
+          <i class="fa-solid fa-play" style="margin-right:6px;"></i>Iniciar
+        </button>
+        <button class="ctrl-btn ctrl-stop" onclick="resetTimer()" style="flex:1;">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom input -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:700;">TIEMPO PERSONALIZADO</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="number" id="custom-sec" placeholder="segundos" min="5" max="600"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px;font-size:15px;width:100%;outline:none;">
+        <button onclick="setCustomTimer()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;color:var(--accent);cursor:pointer;font-weight:700;font-size:14px;white-space:nowrap;">
+          Poner
+        </button>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;">
+      <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:10px;letter-spacing:1px;">GUÍA DE DESCANSOS</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+          <span style="color:var(--muted);">Series de fuerza</span><span class="accent" style="font-weight:700;">2 – 3 min</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+          <span style="color:var(--muted);">Series de hipertrofia</span><span class="accent" style="font-weight:700;">60 – 90 s</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+          <span style="color:var(--muted);">Core / isométricos</span><span class="accent" style="font-weight:700;">30 – 60 s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main -->
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div style="display:flex;">
+    <div class="nav-btn active" id="nav-rutinas" onclick="switchSection('rutinas')">
+      <i class="fa-solid fa-list-check"></i>Rutinas
+    </div>
+    <div class="nav-btn" id="nav-buscar" onclick="switchSection('buscar')">
+      <i class="fa-solid fa-search"></i>Buscar
+    </div>
+    <div class="nav-btn" id="nav-timer" onclick="switchSection('timer')">
+      <i class="fa-solid fa-stopwatch"></i>Timer
+    </div>
+  </div>
+</div>
+
+<!-- ALERT OVERLAY (hidden) -->
+<div id="alert-overlay" style="display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;background:rgba(0,0,0,.7);">
+  <div style="background:var(--surface);border:2px solid var(--accent);border-radius:20px;padding:32px 24px;text-align:center;max-width:300px;width:90%;animation:pulse 1s 3;">
+    <i class="fa-solid fa-bell" style="font-size:40px;color:var(--accent);margin-bottom:12px;display:block;"></i>
+    <div style="font-size:20px;font-weight:800;margin-bottom:6px;">¡Descanso terminado!</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:20px;">Es hora de la siguiente serie.</div>
+    <button onclick="dismissAlert()" style="background:var(--accent);color:#0d1a14;border:none;border-radius:12px;padding:12px 32px;font-size:16px;font-weight:800;cursor:pointer;">
+      ¡A por ello!
+    </button>
+  </div>
+</div>
+
+<script>
+const DAYS = [
+  {
+    id: 'dia1',
+    label: 'Día 1',
+    name: 'Tren Superior — Empuje / Tirón Seguro',
+    icon: 'fa-arrow-up',
+    color: '#00e5a0',
+    exercises: [
+      { id:'d1e1', name:'Remo en polea baja sentado', material:'Estación multifunción (Agarre doble D)', series:4, reps:'12', peso:'15 – 20 kg', notas:'Hombros abajo y atrás. Codos hacia tus bolsillos traseros, no abiertos.', tags:['Espalda','Polea'] },
+      { id:'d1e2', name:'Press de pecho en polea / máquina', material:'Estación multifunción', series:3, reps:'12', peso:'10 – 15 kg', notas:'Frena la bajada: no pases los codos por detrás del torso para proteger el hombro.', tags:['Pecho','Polea'] },
+      { id:'d1e3', name:'Jalón al pecho supino', material:'Estación multifunción', series:3, reps:'10', peso:'20 kg', notas:'Palmas hacia ti. Baja la barra hacia la parte superior del pecho inclinándote un poco.', tags:['Espalda','Polea'] },
+      { id:'d1e4', name:'Flexiones inclinadas', material:'Banco abdominal (posición alta)', series:3, reps:'10', peso:'Peso corp.', notas:'Manos firmes. Codos bajando a 45° respecto al cuerpo (en forma de V).', tags:['Pecho','Cuerpo'] },
+      { id:'d1e5', name:'Extensión de tríceps alta', material:'Estación multifunción (Cuerda/Barra)', series:3, reps:'12', peso:'10 kg', notas:'Codos fijos a los costados. Solo mueves el antebrazo. Controla la subida.', tags:['Brazos','Polea'] },
+    ]
+  },
+  {
+    id: 'dia2',
+    label: 'Día 2',
+    name: 'Tren Inferior — Protección de Rodilla',
+    icon: 'fa-arrow-down',
+    color: '#00c4ff',
+    exercises: [
+      { id:'d2e1', name:'Puente de glúteos con banda', material:'Suelo + Banda elástica en muslos', series:4, reps:'15', peso:'Banda med.', notas:'Empuja fuerte con los talones. Abre rodillas contra la banda para activar glúteos.', tags:['Glúteos','Banda'] },
+      { id:'d2e2', name:'Patada de glúteo en polea', material:'Estación multifunción + Tobillera', series:3, reps:'12 /lado', peso:'5 – 10 kg', notas:'De pie, tronco levemente inclinado. Pierna casi recta hacia atrás. Hombro libre de carga.', tags:['Glúteos','Polea'] },
+      { id:'d2e3', name:'Extensión de cuádriceps baja', material:'Estación multifunción + Banco/Silla', series:3, reps:'15', peso:'5 – 10 kg', notas:'Sentada. Evita doblar la rodilla a más de 90° abajo para cuidar el cartílago.', tags:['Cuádriceps','Polea'] },
+      { id:'d2e4', name:'Curl isquiotibiales de pie', material:'Estación multifunción o Banda', series:3, reps:'12 /lado', peso:'5 kg / Banda', notas:'Lleva el talón hacia el glúteo de forma lenta. Da estabilidad posterior a la rodilla.', tags:['Isquios','Polea','Banda'] },
+      { id:'d2e5', name:'Abducción de cadera de pie', material:'Estación multifunción + Tobillera', series:3, reps:'15 /lado', peso:'5 kg', notas:'Abre la pierna lateralmente de forma pausada. Evita que la rodilla colapse hacia dentro.', tags:['Glúteos','Polea'] },
+    ]
+  },
+  {
+    id: 'dia3',
+    label: 'Día 3',
+    name: 'Core — Estabilidad Central e Isometría',
+    icon: 'fa-crosshairs',
+    color: '#f0a500',
+    exercises: [
+      { id:'d3e1', name:'Press Pallof', material:'Estación multifunción o Banda', series:3, reps:'12 /lado', peso:'Ligero / Med', notas:'De lado a la polea. Empuja al frente. El abdomen bloquea el giro. Súper seguro para el hombro.', tags:['Core','Polea','Banda'] },
+      { id:'d3e2', name:'"Dead Bug" (Bicho muerto)', material:'Suelo / Esterilla', series:3, reps:'10 tot.', peso:'Peso corp.', notas:'Espalda baja firmemente pegada al suelo. Si el brazo lesionado molesta, déjalo fijo apuntando arriba.', tags:['Core','Cuerpo'] },
+      { id:'d3e3', name:'Plancha lateral sobre rodillas', material:'Suelo / Esterilla', series:3, reps:'20-30" /lado', peso:'Peso corp.', notas:'Apoyo en rodilla y antebrazo. Codo alineado bajo el hombro. Protege la articulación subacromial.', tags:['Core','Cuerpo'] },
+      { id:'d3e4', name:'Crunch abdominal controlado', material:'Banco abdominal (Inclinación suave)', series:3, reps:'15', peso:'Peso corp.', notas:'Manos cruzadas en el pecho (no en la nuca). Sube usando el abdomen, evita tirones cervicales.', tags:['Core','Cuerpo'] },
+      { id:'d3e5', name:'"Bird-Dog" (Pájaro-Perro)', material:'Suelo / Esterilla', series:3, reps:'10 tot.', peso:'Peso corp.', notas:'Cuadrupedia. Eleva brazo y pierna contraria despacio. No ladees ni arquees la zona lumbar.', tags:['Core','Cuerpo'] },
+    ]
+  }
+];
+
+let currentDay = 0;
+let timerInterval = null;
+let timerSeconds = 90;
+let timerRunning = false;
+let timerOriginal = 90;
+let activeFilters = [];
+let beepCtx = null;
+
+function getStorage() {
+  try { return JSON.parse(localStorage.getItem('gym_progress') || '{}'); } catch { return {}; }
+}
+function saveStorage(d) { try { localStorage.setItem('gym_progress', JSON.stringify(d)); } catch {} }
+
+function getSeriesState(exId, serieIdx) {
+  const data = getStorage();
+  return !!(data[exId] && data[exId][serieIdx]);
+}
+function toggleSerie(exId, serieIdx, totalSeries) {
+  const data = getStorage();
+  if (!data[exId]) data[exId] = {};
+  data[exId][serieIdx] = !data[exId][serieIdx];
+  saveStorage(data);
+  renderExercises();
+  updateProgress();
+}
+function resetTraining() {
+  if (!confirm('¿Reiniciar todo el progreso de hoy?')) return;
+  saveStorage({});
+  renderExercises();
+  updateProgress();
+}
+
+// SECTIONS
+function switchSection(name) {
+  ['rutinas','buscar','timer'].forEach(s => {
+    document.getElementById('sec-'+s).classList.remove('active');
+    document.getElementById('nav-'+s).classList.remove('active');
+  });
+  document.getElementById('sec-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (name === 'buscar') renderSearch();
+}
+
+// DAY SELECTION
+function selectDay(idx, btn) {
+  currentDay = idx;
+  document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderDaySummary();
+  renderExercises();
+  updateProgress();
+}
+
+function renderDaySummary() {
+  const day = DAYS[currentDay];
+  const totalEx = day.exercises.length;
+  const totalSeries = day.exercises.reduce((a,e) => a + e.series, 0);
+  document.getElementById('day-summary').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="width:36px;height:36px;border-radius:10px;background:${day.color}22;display:flex;align-items:center;justify-content:center;">
+        <i class="fa-solid ${day.icon}" style="color:${day.color};font-size:16px;"></i>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:800;">${day.name}</div>
+        <div style="font-size:12px;color:var(--muted);">${totalEx} ejercicios · ${totalSeries} series totales</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:8px 10px;">
+      <i class="fa-solid fa-bolt" style="color:#f0a500;margin-right:4px;"></i>
+      Realiza 5-10 min de movilidad + ejercicios del fisio antes de empezar.
+    </div>
+  `;
+}
+
+function renderExercises() {
+  const day = DAYS[currentDay];
+  const data = getStorage();
+  const container = document.getElementById('exercises-list');
+  container.innerHTML = '';
+  day.exercises.forEach((ex, exIdx) => {
+    const doneSeries = data[ex.id] ? Object.values(data[ex.id]).filter(Boolean).length : 0;
+    const allDone = doneSeries >= ex.series;
+    const card = document.createElement('div');
+    card.className = 'ex-card' + (allDone ? ' done' : '');
+    let seriesHTML = '';
+    for (let i = 0; i < ex.series; i++) {
+      const isDone = getSeriesState(ex.id, i);
+      seriesHTML += `<button class="serie-btn ${isDone ? 'done' : ''}" onclick="toggleSerie('${ex.id}',${i},${ex.series})">
+        ${isDone ? '<i class="fa-solid fa-check"></i>' : (i+1)}
+      </button>`;
+    }
+    let tagHTML = ex.tags.map(t => `<span class="badge badge-blue">${t}</span>`).join(' ');
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+            ${allDone ? '<i class="fa-solid fa-circle-check" style="color:var(--accent);font-size:16px;"></i>' : `<span style="background:var(--surface2);color:var(--muted);border-radius:6px;padding:1px 7px;font-size:11px;font-weight:800;">${exIdx+1}</span>`}
+            <span style="font-size:15px;font-weight:800;${allDone?'text-decoration:line-through;':''}">${ex.name}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${tagHTML}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">SERIES</div>
+          <div style="font-size:18px;font-weight:800;color:var(--accent);">${ex.series}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">REPS</div>
+          <div style="font-size:16px;font-weight:800;">${ex.reps}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">PESO</div>
+          <div style="font-size:13px;font-weight:800;color:#f0a500;">${ex.peso}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+        <i class="fa-solid fa-wrench" style="margin-right:4px;font-size:11px;"></i>${ex.material}
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">${seriesHTML}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <button onclick="this.nextElementSibling.classList.toggle('open');this.innerHTML=this.nextElementSibling.classList.contains('open')?'<i class=\\'fa-solid fa-chevron-up\\' style=\\'margin-right:4px;font-size:11px;\\'></i>Ocultar nota':'<i class=\\'fa-solid fa-circle-info\\' style=\\'margin-right:4px;font-size:11px;\\'></i>Nota técnica'"
+          style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:0;display:flex;align-items:center;">
+          <i class="fa-solid fa-circle-info" style="margin-right:4px;font-size:11px;"></i>Nota técnica
+        </button>
+        <span style="font-size:11px;color:${allDone?'var(--accent)':'var(--muted)'};">${doneSeries}/${ex.series} series</span>
+      </div>
+      <div class="notes-text">
+        <div style="background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 12px;margin-top:4px;">
+          <i class="fa-solid fa-user-doctor" style="color:var(--accent);margin-right:6px;font-size:12px;"></i>${ex.notas}
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function updateProgress() {
+  const day = DAYS[currentDay];
+  const data = getStorage();
+  let done = 0, total = 0;
+  day.exercises.forEach(ex => {
+    total += ex.series;
+    if (data[ex.id]) done += Object.values(data[ex.id]).filter(Boolean).length;
+  });
+  document.getElementById('progress-text').textContent = `${done} / ${total} series`;
+  document.getElementById('progress-bar').style.width = total > 0 ? (done/total*100)+'%' : '0%';
+}
+
+// SEARCH & FILTERS
+function buildFilterChips() {
+  const tags = new Set();
+  DAYS.forEach(d => d.exercises.forEach(e => e.tags.forEach(t => tags.add(t))));
+  const container = document.getElementById('filter-chips');
+  container.innerHTML = '';
+  [...tags].sort().forEach(tag => {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (activeFilters.includes(tag) ? ' on' : '');
+    chip.textContent = tag;
+    chip.onclick = () => {
+      if (activeFilters.includes(tag)) activeFilters = activeFilters.filter(f => f !== tag);
+      else activeFilters.push(tag);
+      buildFilterChips();
+      renderSearch();
+    };
+    container.appendChild(chip);
+  });
+}
+
+function renderSearch() {
+  const q = (document.getElementById('search-input').value || '').toLowerCase();
+  const container = document.getElementById('search-results');
+  container.innerHTML = '';
+  let results = [];
+  DAYS.forEach((day, dayIdx) => {
+    day.exercises.forEach(ex => {
+      const matchQ = !q || ex.name.toLowerCase().includes(q) || ex.material.toLowerCase().includes(q) || ex.tags.some(t => t.toLowerCase().includes(q));
+      const matchF = activeFilters.length === 0 || activeFilters.every(f => ex.tags.includes(f));
+      if (matchQ && matchF) results.push({ex, day, dayIdx});
+    });
+  });
+  if (results.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);"><i class="fa-solid fa-magnifying-glass" style="font-size:32px;margin-bottom:12px;display:block;"></i>Sin resultados</div>`;
+    return;
+  }
+  results.forEach(({ex, day}) => {
+    const card = document.createElement('div');
+    card.className = 'ex-card';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:15px;font-weight:800;">${ex.name}</span>
+        <span class="badge badge-green">${day.label}</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;"><i class="fa-solid fa-wrench" style="margin-right:4px;font-size:11px;"></i>${ex.material}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        ${ex.tags.map(t=>`<span class="badge badge-blue">${t}</span>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="background:var(--surface2);border-radius:8px;padding:7px;text-align:center;font-size:12px;"><div style="color:var(--muted);font-size:10px;">SERIES</div><b style="color:var(--accent);">${ex.series}</b></div>
+        <div style="background:var(--surface2);border-radius:8px;padding:7px;text-align:center;font-size:12px;"><div style="color:var(--muted);font-size:10px;">REPS</div><b>${ex.reps}</b></div>
+        <div style="background:var(--surface2);border-radius:8px;padding:7px;text-align:center;font-size:12px;"><div style="color:var(--muted);font-size:10px;">PESO</div><b style="color:#f0a500;">${ex.peso}</b></div>
+      </div>
+      <div style="background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:8px 10px;font-size:12px;color:var(--muted);">
+        <i class="fa-solid fa-user-doctor" style="color:var(--accent);margin-right:5px;font-size:11px;"></i>${ex.notas}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// TIMER
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + String(sec).padStart(2,'0');
+}
+function setTimer(s) {
+  if (timerRunning) stopTimer();
+  timerSeconds = s;
+  timerOriginal = s;
+  document.getElementById('timer-display').textContent = formatTime(s);
+  document.getElementById('timer-circle').className = 'timer-circle';
+}
+function setCustomTimer() {
+  const val = parseInt(document.getElementById('custom-sec').value);
+  if (val >= 5 && val <= 600) setTimer(val);
+}
+function toggleTimer() {
+  if (timerRunning) stopTimer();
+  else startTimer();
+}
+function startTimer() {
+  if (timerSeconds <= 0) setTimer(timerOriginal);
+  timerRunning = true;
+  document.getElementById('timer-start-btn').innerHTML = '<i class="fa-solid fa-pause" style="margin-right:6px;"></i>Pausar';
+  document.getElementById('timer-circle').classList.add('running');
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    document.getElementById('timer-display').textContent = formatTime(timerSeconds);
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      document.getElementById('timer-start-btn').innerHTML = '<i class="fa-solid fa-play" style="margin-right:6px;"></i>Iniciar';
+      document.getElementById('timer-circle').className = 'timer-circle done-ring';
+      showAlert();
+      playBeep();
+    }
+  }, 1000);
+}
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  document.getElementById('timer-start-btn').innerHTML = '<i class="fa-solid fa-play" style="margin-right:6px;"></i>Iniciar';
+  document.getElementById('timer-circle').classList.remove('running');
+}
+function resetTimer() {
+  stopTimer();
+  timerSeconds = timerOriginal;
+  document.getElementById('timer-display').textContent = formatTime(timerSeconds);
+  document.getElementById('timer-circle').className = 'timer-circle';
+}
+function showAlert() {
+  document.getElementById('alert-overlay').style.display = 'flex';
+}
+function dismissAlert() {
+  document.getElementById('alert-overlay').style.display = 'none';
+  resetTimer();
+}
+function playBeep() {
+  try {
+    if (!beepCtx) beepCtx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 200, 400].forEach(delay => {
+      const osc = beepCtx.createOscillator();
+      const gain = beepCtx.createGain();
+      osc.connect(gain); gain.connect(beepCtx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, beepCtx.currentTime + delay/1000);
+      gain.gain.exponentialRampToValueAtTime(0.001, beepCtx.currentTime + delay/1000 + 0.2);
+      osc.start(beepCtx.currentTime + delay/1000);
+      osc.stop(beepCtx.currentTime + delay/1000 + 0.25);
+    });
+  } catch(e) {}
+}
+
+// INIT
+buildFilterChips();
+renderDaySummary();
+renderExercises();
+updateProgress();
+</script>
+</body>
+</html>
